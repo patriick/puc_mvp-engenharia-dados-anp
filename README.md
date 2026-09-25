@@ -117,36 +117,44 @@ A imagem abaixo apresenta o Volume utilizado para armazenamento dos arquivos ori
 
 A estrutura do projeto foi organizada utilizando a arquitetura Medalhão, separando os dados nas camadas **Bronze**, **Silver** e **Gold**.
 
-Essa organização permite preservar os dados recebidos da fonte, realizar tratamentos em uma camada intermediária e disponibilizar uma estrutura final preparada para consumo analítico.
+Essa organização permite preservar os dados recebidos da fonte, realizar os processos de limpeza e padronização em uma camada intermediária e disponibilizar uma estrutura final modelada e preparada para consumo analítico.
+
+Além da organização em camadas, as tabelas e seus respectivos campos foram documentados diretamente no **Unity Catalog do Databricks**, permitindo registrar informações sobre contexto, tipos de dados, domínios esperados, unidades de medida e rastreabilidade.
 
 ## 4.1 Camada Bronze
 
-A camada Bronze contém os dados provenientes diretamente dos arquivos CSV da ANP, preservando a estrutura original dos campos.
+A camada Bronze contém os dados provenientes diretamente dos arquivos CSV disponibilizados pela ANP, preservando a estrutura original dos campos.
 
-Tabelas:
+As tabelas criadas nesta camada são:
 
 - `workspace.bronze.producao_petroleo_raw`
 - `workspace.bronze.producao_gas_natural_raw`
 
-Além dos campos originais, foram adicionados metadados técnicos para garantir a rastreabilidade dos registros:
+Além dos campos provenientes dos arquivos originais, foram adicionados metadados técnicos para garantir a rastreabilidade dos registros:
 
-- `_data_ingestao`
-- `_fonte`
-- `_arquivo_origem`
+- `_data_ingestao`: data e horário em que o registro foi ingerido;
+- `_fonte`: identificação da fonte dos dados;
+- `_arquivo_origem`: identificação do arquivo utilizado na carga.
 
-### Evidência do catálogo da camada Bronze
+Os dados permanecem nesta camada o mais próximo possível do formato recebido, deixando os processos de limpeza e padronização para a camada Silver.
 
-![Catálogo da produção de petróleo na Bronze](docs/screenshots/bronze_catalogo_petroleo.png)
+### Evidências do catálogo da camada Bronze
 
-![Catálogo da produção de gás natural na Bronze](docs/screenshots/bronze_catalogo_gn.png)
+A tabela de produção de petróleo foi documentada no Unity Catalog, contendo descrição da tabela, tipos dos campos e comentários.
+
+![Catálogo da produção de petróleo na camada Bronze](docs/screenshots/bronze_catalogo_petroleo.png)
+
+A tabela de produção de gás natural também foi documentada, seguindo a mesma estrutura de catalogação.
+
+![Catálogo da produção de gás natural na camada Bronze](docs/screenshots/bronze_catalogo_gn.png)
 
 ---
 
 ## 4.2 Camada Silver
 
-A camada Silver consolida os dados de petróleo e gás natural em uma única estrutura, aplicando limpeza, padronização, tipagem e enriquecimento dos campos.
+A camada Silver consolida os dados de produção de petróleo e gás natural em uma única estrutura, aplicando os processos de limpeza, padronização, tipagem e enriquecimento necessários para tornar os dados adequados para utilização analítica.
 
-Tabela:
+A tabela criada nesta camada é:
 
 - `workspace.silver.producao_hidrocarbonetos`
 
@@ -155,16 +163,18 @@ Os principais tratamentos realizados foram:
 - padronização dos nomes das colunas;
 - conversão do campo `ano` para tipo inteiro;
 - conversão do campo `producao` para `decimal(20,3)`;
-- tratamento do separador decimal;
-- inclusão da unidade de medida correspondente ao produto;
+- tratamento do separador decimal originalmente representado por vírgula;
+- inclusão da unidade de medida correspondente a cada produto;
 - consolidação das bases de petróleo e gás natural;
 - criação do campo `mes_numero`;
 - criação do campo `data_referencia`;
 - preservação dos metadados de rastreabilidade provenientes da camada Bronze.
 
-A camada Silver mantém o histórico completo disponível nos arquivos de origem.
+A camada Silver mantém o histórico completo disponível nos arquivos de origem, enquanto o recorte temporal utilizado nas análises é aplicado posteriormente na camada Gold.
 
 ### Evidência do catálogo da camada Silver
+
+A tabela consolidada foi documentada diretamente no Unity Catalog, incluindo descrição dos campos, tipos de dados, domínios esperados e informações sobre as transformações realizadas.
 
 ![Catálogo da camada Silver](docs/screenshots/silver_catalogo_producao_hidrocarbonetos.png)
 
@@ -172,11 +182,13 @@ A camada Silver mantém o histórico completo disponível nos arquivos de origem
 
 ## 4.3 Camada Gold
 
-A camada Gold contém o modelo dimensional utilizado para as análises de negócio.
+A camada Gold contém os dados modelados e estruturados para consumo analítico.
 
-Nesta camada foi aplicado o recorte temporal de **2016 a 2025**, considerando apenas anos completos.
+Para o escopo das análises deste MVP, foi aplicado o recorte temporal entre **2016 e 2025**, considerando apenas anos completos.
 
-O modelo foi estruturado em esquema estrela e é composto pelas seguintes tabelas:
+O modelo foi desenvolvido utilizando um **esquema estrela**, composto por uma tabela fato central relacionada a quatro dimensões.
+
+As tabelas da camada Gold são:
 
 - `workspace.gold.dim_tempo`
 - `workspace.gold.dim_localidade`
@@ -186,11 +198,138 @@ O modelo foi estruturado em esquema estrela e é composto pelas seguintes tabela
 
 ### Estrutura do modelo dimensional
 
-```text
-                    dim_tempo
-                        |
-                        |
-dim_localidade --- fato_producao --- dim_produto
-                        |
-                        |
-                   dim_ambiente
+                       dim_tempo
+                         |
+                         |
+    dim_localidade --- fato_producao --- dim_produto
+                         |
+                         |
+                    dim_ambiente
+
+A tabela `fato_producao` contém os volumes mensais produzidos e se relaciona com as dimensões de tempo, localidade, produto e ambiente.
+
+### Evidência da estrutura do modelo Gold
+
+A imagem abaixo apresenta as cinco tabelas persistidas na camada Gold do Unity Catalog.
+
+![Estrutura do modelo Gold](docs/screenshots/gold_estrutura_modelo.png)
+
+---
+
+## 4.4 Tabela Fato
+
+### `fato_producao`
+
+A tabela `fato_producao` representa o elemento central do modelo dimensional e armazena os volumes mensais de produção associados às respectivas dimensões.
+
+A granularidade da tabela corresponde à produção mensal por combinação de:
+
+- período;
+- unidade da federação;
+- produto;
+- ambiente de produção.
+
+Sua estrutura é composta pelos seguintes campos:
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `id_tempo` | int | Chave de relacionamento com a dimensão `dim_tempo` |
+| `id_localidade` | bigint | Chave de relacionamento com a dimensão `dim_localidade` |
+| `id_produto` | bigint | Chave de relacionamento com a dimensão `dim_produto` |
+| `id_ambiente` | bigint | Chave de relacionamento com a dimensão `dim_ambiente` |
+| `producao` | decimal(20,3) | Volume mensal de produção |
+
+A unidade de medida do campo `producao` deve ser interpretada juntamente com a dimensão `dim_produto`, uma vez que petróleo e gás natural possuem unidades de origem diferentes.
+
+### Evidência do catálogo da tabela fato
+
+A tabela fato foi documentada no Unity Catalog com descrição da tabela, tipos dos campos e comentários associados a cada coluna.
+
+![Catálogo da fato_producao](docs/screenshots/gold_catalogo_fato_producao.png)
+
+---
+
+## 4.5 Dimensões
+
+### `dim_tempo`
+
+A dimensão de tempo organiza os atributos temporais utilizados nas análises.
+
+| Campo | Descrição |
+|---|---|
+| `id_tempo` | Chave temporal no formato AAAAMM |
+| `data_referencia` | Data de referência mensal |
+| `ano` | Ano de referência da produção |
+| `mes` | Sigla do mês de referência |
+| `mes_numero` | Número correspondente ao mês, entre 1 e 12 |
+
+### `dim_localidade`
+
+A dimensão de localidade organiza a informação geográfica associada aos registros de produção.
+
+| Campo | Descrição |
+|---|---|
+| `id_localidade` | Chave técnica da localidade |
+| `grande_regiao` | Grande região brasileira |
+| `unidade_federacao` | Unidade da Federação |
+
+### `dim_produto`
+
+A dimensão de produto identifica o produto analisado e sua respectiva unidade de medida.
+
+| Campo | Descrição |
+|---|---|
+| `id_produto` | Chave técnica do produto |
+| `produto` | Produto analisado: PETRÓLEO ou GÁS NATURAL |
+| `unidade_medida` | Unidade correspondente ao produto |
+
+### `dim_ambiente`
+
+A dimensão de ambiente representa a localização da atividade produtiva.
+
+| Campo | Descrição |
+|---|---|
+| `id_ambiente` | Chave técnica do ambiente |
+| `ambiente` | Ambiente de produção: TERRA ou MAR |
+
+### Evidência do catálogo da dimensão de produto
+
+A dimensão de produto foi utilizada como evidência representativa da documentação das dimensões no Unity Catalog.
+
+![Catálogo da dimensão de produto](docs/screenshots/gold_catalogo_dim_produto.png)
+
+---
+
+## 4.6 Catálogo de Dados
+
+As tabelas criadas ao longo do pipeline foram documentadas diretamente no **Unity Catalog do Databricks**.
+
+A documentação contempla informações relacionadas a:
+
+- contexto e finalidade das tabelas;
+- nomes e descrições dos campos;
+- tipos de dados;
+- domínios esperados;
+- unidades de medida;
+- significado das chaves;
+- origem dos dados;
+- transformações realizadas;
+- metadados utilizados para rastreabilidade.
+
+A utilização do catálogo permite que a estrutura e o significado dos dados permaneçam documentados diretamente no ambiente em que o pipeline foi implementado, reduzindo a dependência de conhecimento externo sobre o significado das tabelas e dos campos.
+
+A linhagem lógica implementada no projeto pode ser resumida da seguinte forma:
+
+    Arquivos CSV da ANP
+            |
+            v
+         Bronze
+            |
+            v
+         Silver
+            |
+            v
+          Gold
+            |
+            v
+    Análises de Negócio
