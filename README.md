@@ -778,3 +778,184 @@ Após os tratamentos e validações:
 - a quantidade de registros foi preservada durante a construção da camada Gold.
 
 A análise estatística identificou potenciais outliers, porém esses registros foram mantidos por poderem representar diferenças reais de produção e não necessariamente problemas de qualidade.
+
+---
+
+# 7. Análise dos Dados
+
+Após a construção e validação do pipeline, os dados da camada Gold foram utilizados para responder às cinco perguntas de negócio definidas no início do projeto.
+
+As análises foram realizadas no notebook:
+
+`05_analise_negocio`
+
+Para facilitar a leitura dos resultados, os volumes foram apresentados em **milhões de m³**, mantendo petróleo e gás natural analisados separadamente, pois os arquivos de origem utilizam unidades distintas.
+
+Para petróleo, o valor original em m³ foi convertido para milhões de m³.
+
+Para gás natural, o valor original em mil m³ foi convertido para milhões de m³.
+
+Os volumes dos dois produtos não foram somados entre si.
+
+---
+
+## 7.1 Como evoluiu a produção de petróleo e gás natural no Brasil entre 2016 e 2025?
+
+A primeira análise avaliou a evolução anual da produção nacional de petróleo e gás natural durante os dez anos completos selecionados para o projeto.
+
+Entre 2016 e 2025, a produção de petróleo passou de aproximadamente **146,1 milhões de m³** para **218,8 milhões de m³**.
+
+No mesmo período, a produção de gás natural passou de aproximadamente **37.890,5 milhões de m³** para **65.421,6 milhões de m³**.
+
+Considerando os valores observados no início e no final do período:
+
+- a produção de petróleo apresentou crescimento aproximado de **49,8%**;
+- a produção de gás natural apresentou crescimento aproximado de **72,7%**.
+
+A análise da variação percentual anual também permitiu observar que a trajetória de crescimento não foi uniforme.
+
+No caso do petróleo, ocorreram pequenas reduções em alguns anos, como 2018, 2021 e 2024, seguidas posteriormente por retomadas da produção.
+
+No gás natural, a série apresentou crescimento ao longo do período analisado, com destaque para a expansão observada em 2025.
+
+### Evidência da evolução da produção
+
+![Evolução anual da produção](docs/screenshots/analise_01_evolucao_producao.png)
+
+### Conclusão
+
+Os dois produtos apresentaram crescimento relevante entre 2016 e 2025. Entretanto, a evolução ocorreu em ritmos diferentes e, no caso do petróleo, com algumas oscilações ao longo da série.
+
+---
+
+## 7.2 Quais estados apresentam os maiores volumes de produção de petróleo e de gás natural?
+
+A segunda análise avaliou o volume acumulado de produção por Unidade da Federação durante o período de 2016 a 2025.
+
+Para petróleo, os cinco estados com maior produção acumulada foram:
+
+1. Rio de Janeiro;
+2. São Paulo;
+3. Espírito Santo;
+4. Rio Grande do Norte;
+5. Bahia.
+
+O Rio de Janeiro apresentou volume significativamente superior aos demais estados, com aproximadamente **1.379,4 milhões de m³** de petróleo produzidos no período.
+
+Para gás natural, os cinco principais estados foram:
+
+1. Rio de Janeiro;
+2. São Paulo;
+3. Amazonas;
+4. Espírito Santo;
+5. Bahia.
+
+Também neste produto o Rio de Janeiro apresentou o maior volume acumulado.
+
+### Evidência dos principais estados produtores
+
+![Top 5 estados produtores](docs/screenshots/analise_02_top5_estados.png)
+
+### Conclusão
+
+O Rio de Janeiro ocupa posição de destaque na produção nacional tanto de petróleo quanto de gás natural.
+
+Apesar de existirem outros estados relevantes, principalmente São Paulo, Espírito Santo e Amazonas, dependendo do produto analisado, a produção brasileira apresenta forte concentração nos principais estados produtores.
+
+---
+
+## 7.3 Qual é a participação da produção realizada em terra e no mar ao longo do período?
+
+A terceira análise avaliou a distribuição da produção entre os ambientes **MAR** e **TERRA**.
+
+No petróleo, a produção marítima já representava aproximadamente **94,0%** da produção nacional em 2016.
+
+Em 2025, essa participação alcançou aproximadamente **97,6%**.
+
+Consequentemente, a participação terrestre passou de aproximadamente 6,0% para 2,4% no mesmo período.
+
+No gás natural também foi observada predominância da produção marítima.
+
+A participação da produção no mar passou de aproximadamente **77,0% em 2016** para **86,4% em 2025**.
+
+A produção terrestre de gás natural, por sua vez, reduziu sua participação relativa de aproximadamente 23,0% para 13,6%.
+
+### Evidência da participação Terra × Mar
+
+![Participação da produção em terra e no mar](docs/screenshots/analise_03_terra_mar.png)
+
+### Conclusão
+
+A produção nacional de petróleo e gás natural apresenta forte predominância do ambiente marítimo.
+
+Além dessa predominância, os resultados indicam aumento da participação relativa da produção offshore durante o período analisado, principalmente no petróleo.
+
+---
+
+## 7.4 Como a produção está distribuída entre as grandes regiões brasileiras?
+
+A quarta análise agrupou os volumes de produção pelas grandes regiões brasileiras.
+
+Na produção de petróleo, a região Sudeste apresentou aproximadamente **96,7%** do volume acumulado entre 2016 e 2025.
+
+As demais regiões apresentaram participação significativamente menor no total produzido.
+
+No gás natural, a região Sudeste também apresentou a maior participação, correspondendo a aproximadamente **80,2%** da produção acumulada no período.
+
+Entretanto, neste produto também se observa participação relevante das regiões Norte e Nordeste.
+
+### Evidência da distribuição regional
+
+![Distribuição da produção por região](docs/screenshots/analise_04_regioes.png)
+
+### Conclusão
+
+A produção brasileira está fortemente concentrada na região Sudeste.
+
+Essa concentração é especialmente elevada no petróleo. No gás natural, embora o Sudeste permaneça dominante, existe maior participação relativa de outras regiões, principalmente Norte e Nordeste.
+
+---
+
+## 7.5 A produção está ficando mais ou menos concentrada nos principais estados produtores?
+
+Para avaliar a concentração geográfica da produção, foi calculada a participação dos **três maiores estados produtores de cada ano** sobre a produção nacional daquele produto.
+
+No petróleo, os três maiores estados representavam aproximadamente **93,8%** da produção nacional em 2016.
+
+Em 2025, essa participação alcançou aproximadamente **97,8%**.
+
+Isso representa aumento de aproximadamente **4,0 pontos percentuais** na concentração dos três maiores produtores.
+
+No gás natural, a mudança foi ainda mais expressiva.
+
+Os três principais estados representavam aproximadamente **72,7%** da produção em 2016 e passaram a representar aproximadamente **90,8%** em 2025.
+
+O aumento observado foi de aproximadamente **18,1 pontos percentuais**.
+
+### Evidência da concentração dos principais estados
+
+![Concentração dos três maiores estados produtores](docs/screenshots/analise_05_concentracao_top3.png)
+
+### Conclusão
+
+Os resultados indicam aumento da concentração geográfica da produção nos principais estados produtores durante o período analisado.
+
+Esse movimento ocorre nos dois produtos, mas é especialmente significativo no gás natural.
+
+---
+
+## 7.6 Conclusão das Análises
+
+A análise dos dados entre 2016 e 2025 permitiu identificar algumas características importantes da produção brasileira de petróleo e gás natural.
+
+Os principais resultados foram:
+
+- crescimento da produção dos dois produtos ao longo do período;
+- liderança do Rio de Janeiro entre os estados produtores;
+- forte predominância da produção realizada no mar;
+- elevada participação da região Sudeste na produção nacional;
+- aumento da concentração da produção nos principais estados produtores.
+
+Os resultados demonstram como a construção de um pipeline estruturado permite transformar os dados brutos disponibilizados pela ANP em informações organizadas e adequadas para análise.
+
+A arquitetura desenvolvida possibilitou preservar os dados de origem, aplicar tratamentos de qualidade, estruturar um modelo dimensional e responder às perguntas de negócio definidas para o MVP.
