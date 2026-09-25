@@ -33,3 +33,39 @@ Como petróleo e gás natural são disponibilizados originalmente em unidades de
 ---
 
 # 2. Fonte e Coleta dos Dados
+Os dados utilizados neste projeto foram obtidos no portal oficial de Dados Abertos da Agência Nacional do Petróleo, Gás Natural e Biocombustíveis (ANP).
+
+Foram utilizados dois arquivos em formato CSV:
+
+| Conjunto de dados | Arquivo utilizado | Unidade original |
+|---|---|---|
+| Produção de petróleo | `producao-petroleo-m3-1997-2026.csv` | m³ |
+| Produção de gás natural | `producao-gas-natural-1000m3-1997-2026.csv` | mil m³ |
+
+Os dois arquivos possuem estrutura semelhante, contendo os campos:
+
+- `ANO`
+- `MÊS`
+- `GRANDE REGIÃO`
+- `UNIDADE DA FEDERAÇÃO`
+- `PRODUTO`
+- `LOCALIZAÇÃO`
+- `PRODUÇÃO`
+
+Os dados disponibilizados pela ANP são atualizados mensalmente. Embora os arquivos contenham histórico a partir de 1997 e também registros de 2026, o recorte analítico utilizado na camada Gold considera apenas os anos completos entre **2016 e 2025**.
+
+A aquisição dos dados foi realizada por download dos arquivos CSV disponibilizados no portal oficial da ANP. Após o download, os arquivos foram carregados em um Volume do Databricks, preservando os arquivos originais para posterior processamento.
+
+### Fonte oficial
+- [Portal de Dados Abertos da ANP](https://www.gov.br/anp/pt-br/centrais-de-conteudo/dados-abertos)
+- [Produção de petróleo e gás natural por estado e localização](https://www.gov.br/anp/pt-br/centrais-de-conteudo/dados-abertos/producao-de-petroleo-e-gas-natural-por-estado-e-localizacao)
+- [Arquivo de produção de petróleo](https://www.gov.br/anp/pt-br/centrais-de-conteudo/dados-abertos/arquivos/ppgn-el/producao-petroleo-m3.csv/view)
+- [Arquivo de produção de gás natural](https://www.gov.br/anp/pt-br/centrais-de-conteudo/dados-abertos/arquivos/ppgn-el/producao-gas-natural-1000m3.csv/view)
+
+### Licença e utilização dos dados
+
+Os conjuntos utilizados são disponibilizados pela ANP como **dados abertos governamentais**.
+
+De acordo com a Política de Dados Abertos do Poder Executivo Federal, dados abertos são disponibilizados sob licença aberta, permitindo sua utilização, reutilização e cruzamento, sujeitando-se, no máximo, à preservação da autoria ou da fonte.
+
+Neste projeto, a ANP é mantida como fonte de origem dos dados durante todo o pipeline por meio dos metadados adicionados na camada Bronze.
