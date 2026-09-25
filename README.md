@@ -1,4 +1,6 @@
 # MVP de Engenharia de Dados
+Nome: Patrick Pinto Pinheiro
+Matrícula: 4052025002503
 
 ## Pipeline de Dados para Análise da Produção de Petróleo e Gás Natural no Brasil
 
