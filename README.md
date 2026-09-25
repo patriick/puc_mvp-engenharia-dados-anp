@@ -321,42 +321,42 @@ A tabela fato foi documentada no Unity Catalog com descrição da tabela, tipos 
 
 A dimensão de tempo organiza os atributos temporais utilizados nas análises.
 
-| Campo | Descrição |
-|---|---|
-| `id_tempo` | Chave temporal no formato AAAAMM |
-| `data_referencia` | Data de referência mensal |
-| `ano` | Ano de referência da produção |
-| `mes` | Sigla do mês de referência |
-| `mes_numero` | Número correspondente ao mês, entre 1 e 12 |
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `id_tempo` | int | Chave temporal no formato AAAAMM |
+| `data_referencia` | date | Data de referência mensal |
+| `ano` | int | Ano de referência da produção |
+| `mes` | string | Sigla do mês de referência |
+| `mes_numero` | int | Número correspondente ao mês, entre 1 e 12 |
 
 ### `dim_localidade`
 
 A dimensão de localidade organiza a informação geográfica associada aos registros de produção.
 
-| Campo | Descrição |
-|---|---|
-| `id_localidade` | Chave técnica da localidade |
-| `grande_regiao` | Grande região brasileira |
-| `unidade_federacao` | Unidade da Federação |
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `id_localidade` | bigint | Chave técnica da localidade |
+| `grande_regiao` | string | Grande região brasileira |
+| `unidade_federacao` | string | Unidade da Federação |
 
 ### `dim_produto`
 
 A dimensão de produto identifica o produto analisado e sua respectiva unidade de medida.
 
-| Campo | Descrição |
-|---|---|
-| `id_produto` | Chave técnica do produto |
-| `produto` | Produto analisado: PETRÓLEO ou GÁS NATURAL |
-| `unidade_medida` | Unidade correspondente ao produto |
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `id_produto` | bigint | Chave técnica do produto |
+| `produto` | string | Produto analisado: PETRÓLEO ou GÁS NATURAL |
+| `unidade_medida` | string | Unidade correspondente ao produto |
 
 ### `dim_ambiente`
 
 A dimensão de ambiente representa a localização da atividade produtiva.
 
-| Campo | Descrição |
-|---|---|
-| `id_ambiente` | Chave técnica do ambiente |
-| `ambiente` | Ambiente de produção: TERRA ou MAR |
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `id_ambiente` | bigint | Chave técnica do ambiente |
+| `ambiente` | string | Ambiente de produção: TERRA ou MAR |
 
 ### Evidência do catálogo da dimensão de produto
 
@@ -569,8 +569,6 @@ As principais tabelas persistidas durante o pipeline são:
 
 ## 5.6 Sequência de Execução
 
-## 5.6 Sequência de Execução
-
 Para reproduzir o pipeline, os notebooks devem ser executados na seguinte ordem:
 
 1. [`00_setup.sql`](notebooks/00_setup.sql)
@@ -617,7 +615,7 @@ A organização em camadas também permite acompanhar logicamente a evolução d
     Análise
     informação para consumo
 
-    ---
+---
 
 # 6. Qualidade dos Dados
 
@@ -687,7 +685,7 @@ Dessa forma, não foram identificados problemas de completude na estrutura final
 
 ---
 
-## 6.3 Consistência e Validade dos Dados
+## 6.3 Consistência, Validade e Acurácia dos Dados
 
 Também foram realizadas verificações relacionadas à consistência dos valores presentes na base.
 
