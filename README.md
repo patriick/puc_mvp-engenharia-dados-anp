@@ -548,3 +548,233 @@ A organização em camadas também permite acompanhar logicamente a evolução d
         v
     Análise
     informação para consumo
+
+    ---
+
+# 6. Qualidade dos Dados
+
+A qualidade dos dados foi avaliada após a construção da camada Silver, utilizando verificações relacionadas à **completude, consistência, unicidade, validade dos valores e identificação de potenciais outliers**.
+
+As validações foram implementadas no notebook:
+
+`04_qualidade_dados`
+
+O objetivo dessa etapa foi identificar problemas existentes nos dados de origem, verificar os tratamentos aplicados durante o pipeline e garantir que os dados utilizados na camada analítica apresentassem condições adequadas para análise.
+
+---
+
+## 6.1 Tratamento do Separador Decimal
+
+Durante a análise dos dados da camada Bronze foi identificado que alguns valores do campo `PRODUÇÃO` utilizavam **vírgula como separador decimal**.
+
+Exemplo:
+
+`65031,6`
+
+A conversão direta desse conteúdo para um tipo numérico poderia resultar em erro ou valor nulo.
+
+Por esse motivo, durante a construção da camada Silver foi realizada a normalização do campo antes da conversão para `decimal(20,3)`.
+
+Exemplo após o tratamento:
+
+`65031,6` → `65031.600`
+
+Esse tratamento permite preservar corretamente os volumes registrados na fonte.
+
+### Evidência do tratamento
+
+![Tratamento do separador decimal](docs/screenshots/qualidade_tratamento_decimal.png)
+
+---
+
+## 6.2 Completude
+
+Foi realizada uma análise de valores nulos nos campos da tabela:
+
+`workspace.silver.producao_hidrocarbonetos`
+
+Foram avaliados os seguintes atributos:
+
+- `ano`;
+- `mes`;
+- `grande_regiao`;
+- `unidade_federacao`;
+- `produto`;
+- `localizacao`;
+- `producao`;
+- `unidade_medida`;
+- `data_ingestao`;
+- `fonte`;
+- `arquivo_origem`;
+- `mes_numero`;
+- `data_referencia`.
+
+O resultado da validação apresentou **zero valores nulos em todos os campos avaliados**.
+
+Dessa forma, não foram identificados problemas de completude na estrutura final da camada Silver.
+
+### Evidência da análise de completude
+
+![Validação de completude](docs/screenshots/qualidade_completude.png)
+
+---
+
+## 6.3 Consistência e Validade dos Dados
+
+Também foram realizadas verificações relacionadas à consistência dos valores presentes na base.
+
+### Domínio dos produtos
+
+Foram identificados somente os produtos esperados:
+
+- `PETRÓLEO`
+- `GÁS NATURAL`
+
+### Domínio da localização
+
+Foram identificados somente os ambientes:
+
+- `MAR`
+- `TERRA`
+
+### Meses
+
+Foi validada a correspondência entre as siglas dos meses e o campo numérico `mes_numero`, garantindo valores entre 1 e 12.
+
+### Produto e unidade de medida
+
+Foi validada a associação entre cada produto e sua respectiva unidade:
+
+| Produto | Unidade |
+|---|---|
+| PETRÓLEO | `m3` |
+| GÁS NATURAL | `mil_m3` |
+
+### Produção negativa
+
+Foi realizada uma busca por valores de produção menores que zero.
+
+**Resultado: 0 registros.**
+
+### Consistência temporal
+
+Foram comparados os campos derivados de data com seus campos de origem.
+
+Foram verificadas:
+
+- divergências entre `ano` e o ano presente em `data_referencia`;
+- divergências entre `mes_numero` e o mês presente em `data_referencia`.
+
+**Resultado: 0 inconsistências identificadas.**
+
+---
+
+## 6.4 Unicidade
+
+A existência de registros duplicados foi avaliada considerando a granularidade esperada da tabela:
+
+- `data_referencia`;
+- `grande_regiao`;
+- `unidade_federacao`;
+- `produto`;
+- `unidade_medida`;
+- `localizacao`.
+
+A combinação desses campos representa a granularidade utilizada para identificar os registros de produção.
+
+**Resultado: 0 duplicidades identificadas.**
+
+---
+
+## 6.5 Consolidação das Principais Validações
+
+As principais regras de qualidade foram consolidadas em uma única validação para facilitar a interpretação dos resultados.
+
+| Validação | Resultado |
+|---|---:|
+| Produção negativa | 0 |
+| Duplicidades na granularidade esperada | 0 |
+| Inconsistência entre ano e data de referência | 0 |
+| Inconsistência entre mês e data de referência | 0 |
+
+### Evidência das validações
+
+![Consolidação das validações de qualidade](docs/screenshots/qualidade_validacoes.png)
+
+---
+
+## 6.6 Identificação de Potenciais Outliers
+
+Para identificação de valores extremos foi utilizado o método do **intervalo interquartil (IQR)**.
+
+Em uma primeira avaliação, considerando apenas a separação por produto, foram identificados:
+
+**2.114 potenciais outliers.**
+
+Entretanto, os dados de produção possuem diferenças estruturais relevantes entre estados e ambientes de produção. Um estado com elevada produção marítima, por exemplo, pode apresentar valores muito superiores aos de outros estados sem que isso represente necessariamente um erro.
+
+Por esse motivo, foi realizada uma segunda análise mais contextualizada, calculando os limites por combinação de:
+
+- produto;
+- unidade da federação;
+- localização.
+
+Após esse refinamento foram identificados:
+
+**274 potenciais outliers contextuais.**
+
+Os registros identificados não foram removidos automaticamente.
+
+A presença de um valor estatisticamente extremo não significa necessariamente que o dado esteja incorreto. No contexto de produção de petróleo e gás natural, diferenças elevadas podem refletir características reais de produção de determinados estados e ambientes.
+
+Por esse motivo, os registros foram mantidos e classificados apenas como valores que merecem atenção em análises futuras.
+
+### Evidência da análise contextual de outliers
+
+![Análise de outliers contextuais](docs/screenshots/qualidade_outliers_contextuais.png)
+
+---
+
+## 6.7 Integridade da Camada Gold
+
+Além das verificações realizadas na Silver, também foi validada a integridade da modelagem dimensional.
+
+Foram verificadas as chaves da tabela:
+
+`workspace.gold.fato_producao`
+
+Não foram identificadas chaves nulas nos relacionamentos com:
+
+- `dim_tempo`;
+- `dim_localidade`;
+- `dim_produto`;
+- `dim_ambiente`.
+
+Também foi comparada a quantidade de registros da Silver no período de 2016 a 2025 com a quantidade de registros da tabela fato.
+
+Ambas apresentaram:
+
+**5.278 registros.**
+
+Esse resultado indica que não houve perda de registros durante o processo de construção do modelo dimensional.
+
+---
+
+## 6.8 Conclusão da Qualidade dos Dados
+
+As verificações realizadas demonstraram que o pipeline tratou adequadamente os principais aspectos de qualidade necessários para o projeto.
+
+O principal problema identificado nos dados de origem foi a representação de valores decimais utilizando vírgula, situação tratada durante a transformação para a camada Silver.
+
+Após os tratamentos e validações:
+
+- não foram identificados valores nulos nos campos avaliados;
+- não foram identificadas produções negativas;
+- os domínios de produto e localização apresentaram valores esperados;
+- não foram identificadas duplicidades na granularidade definida;
+- não foram identificadas inconsistências temporais;
+- as unidades de medida permaneceram associadas corretamente aos produtos;
+- não foram identificadas chaves nulas no modelo dimensional;
+- a quantidade de registros foi preservada durante a construção da camada Gold.
+
+A análise estatística identificou potenciais outliers, porém esses registros foram mantidos por poderem representar diferenças reais de produção e não necessariamente problemas de qualidade.
