@@ -111,6 +111,7 @@ A quantidade de registros persistidos foi validada após a carga:
 A imagem abaixo apresenta o Volume utilizado para armazenamento dos arquivos originais e as tabelas persistidas na camada Bronze.
 
 ![Estrutura da camada Bronze e arquivos brutos](docs/screenshots/bronze_estrutura_e_arquivos.png)
+
 ---
 
 # 4. Modelagem e Catálogo de Dados
@@ -137,6 +138,38 @@ Além dos campos provenientes dos arquivos originais, foram adicionados metadado
 - `_arquivo_origem`: identificação do arquivo utilizado na carga.
 
 Os dados permanecem nesta camada o mais próximo possível do formato recebido, deixando os processos de limpeza e padronização para a camada Silver.
+
+### Catálogo dos campos da camada Bronze
+
+As duas tabelas da camada Bronze possuem a mesma estrutura de campos proveniente dos arquivos da ANP, diferenciando-se pelo produto armazenado.
+
+| Campo | Tipo | Descrição | Domínio / Regra |
+|---|---|---|---|
+| `ANO` | string | Ano de referência da produção conforme recebido no arquivo de origem | Ano informado pela ANP |
+| `MÊS` | string | Mês de referência da produção | JAN a DEZ |
+| `GRANDE REGIÃO` | string | Grande região brasileira associada à produção | Regiões existentes nos dados da ANP |
+| `UNIDADE DA FEDERAÇÃO` | string | Unidade da Federação associada ao registro | UFs existentes nos dados da fonte |
+| `PRODUTO` | string | Produto correspondente ao volume registrado | PETRÓLEO ou GÁS NATURAL, conforme a tabela |
+| `LOCALIZAÇÃO` | string | Ambiente em que ocorre a produção | MAR ou TERRA |
+| `PRODUÇÃO` | string | Volume de produção conforme recebido no arquivo original | Valor numérico armazenado inicialmente como texto, podendo utilizar vírgula como separador decimal |
+| `_data_ingestao` | timestamp | Data e horário em que o registro foi carregado no Databricks | Timestamp gerado durante a ingestão |
+| `_fonte` | string | Identificação da origem do dado | ANP |
+| `_arquivo_origem` | string | Nome do arquivo utilizado na carga | Arquivo CSV de petróleo ou gás natural |
+
+### Linhagem da camada Bronze
+
+Os registros da camada Bronze são originados diretamente dos arquivos CSV disponibilizados pela ANP.
+
+Nesta etapa não são aplicadas regras de negócio, conversões de unidade ou alterações nos valores originais. São adicionados apenas os metadados técnicos de ingestão, fonte e arquivo de origem.
+
+A linhagem desta camada pode ser representada por:
+
+    Arquivos CSV da ANP
+            |
+            v
+    producao_petroleo_raw
+            +
+    producao_gas_natural_raw
 
 ### Evidências do catálogo da camada Bronze
 
@@ -171,6 +204,39 @@ Os principais tratamentos realizados foram:
 - preservação dos metadados de rastreabilidade provenientes da camada Bronze.
 
 A camada Silver mantém o histórico completo disponível nos arquivos de origem, enquanto o recorte temporal utilizado nas análises é aplicado posteriormente na camada Gold.
+
+### Catálogo dos campos da camada Silver
+
+| Campo | Tipo | Descrição | Domínio / Regra |
+|---|---|---|---|
+| `ano` | int | Ano de referência da produção | Histórico disponível na fonte |
+| `mes` | string | Sigla do mês de referência | JAN a DEZ |
+| `grande_regiao` | string | Grande região brasileira associada ao registro | Regiões existentes nos dados da ANP |
+| `unidade_federacao` | string | Unidade da Federação associada à produção | UFs existentes nos dados da fonte |
+| `produto` | string | Produto correspondente ao volume produzido | PETRÓLEO ou GÁS NATURAL |
+| `localizacao` | string | Ambiente onde ocorre a produção | MAR ou TERRA |
+| `producao` | decimal(20,3) | Volume de produção após tratamento e conversão para tipo numérico | Valor maior ou igual a zero |
+| `unidade_medida` | string | Unidade de medida associada ao produto | `m3` para PETRÓLEO e `mil_m3` para GÁS NATURAL |
+| `data_ingestao` | timestamp | Data e horário de ingestão do registro | Herdado da camada Bronze |
+| `fonte` | string | Fonte de origem do dado | ANP |
+| `arquivo_origem` | string | Arquivo de origem do registro | Arquivo CSV de petróleo ou gás natural |
+| `mes_numero` | int | Representação numérica do mês | 1 a 12 |
+| `data_referencia` | date | Data mensal construída a partir do ano e do mês do registro | Primeiro dia do respectivo mês |
+
+### Linhagem da camada Silver
+
+A tabela `workspace.silver.producao_hidrocarbonetos` é formada pela consolidação das duas tabelas da camada Bronze:
+
+- `workspace.bronze.producao_petroleo_raw`;
+- `workspace.bronze.producao_gas_natural_raw`.
+
+Durante essa transformação são realizadas a padronização dos nomes dos campos, conversão dos tipos de dados, tratamento do separador decimal, inclusão da unidade de medida e criação dos campos `mes_numero` e `data_referencia`.
+
+A linhagem pode ser resumida por:
+
+    producao_petroleo_raw ──┐
+                            ├──> producao_hidrocarbonetos
+    producao_gas_natural_raw┘
 
 ### Evidência do catálogo da camada Silver
 
@@ -334,7 +400,7 @@ A linhagem lógica implementada no projeto pode ser resumida da seguinte forma:
             v
     Análises de Negócio
 
-    ---
+---
 
 # 5. Pipeline de Dados
 
@@ -377,13 +443,13 @@ O projeto foi dividido nos seguintes notebooks:
 
 | Notebook | Responsabilidade |
 |---|---|
-| `00_setup` | Configuração inicial do ambiente, criação dos schemas Bronze, Silver e Gold e criação do Volume para armazenamento dos arquivos brutos |
-| `01_ingestao_bronze` | Leitura dos arquivos CSV da ANP, inclusão de metadados técnicos e persistência das tabelas da camada Bronze |
-| `02_transformacao_silver` | Limpeza, padronização, tipagem, consolidação e criação dos campos derivados da camada Silver |
-| `03_modelagem_gold` | Aplicação do recorte temporal, criação das dimensões e da tabela fato e persistência do modelo dimensional |
-| `04_qualidade_dados` | Execução das verificações de completude, consistência, unicidade, acurácia e identificação de potenciais outliers |
-| `05_analise_negocio` | Consultas e visualizações utilizadas para responder às cinco perguntas de negócio |
-| `06_catalogo_dados` | Registro das descrições das tabelas e campos diretamente no Unity Catalog |
+| [`00_setup.sql`](notebooks/00_setup.sql) | Configuração inicial do ambiente, criação dos schemas Bronze, Silver e Gold e criação do Volume para armazenamento dos arquivos brutos |
+| [`01_ingestao_bronze.sql`](notebooks/01_ingestao_bronze.sql) | Leitura dos arquivos CSV da ANP, inclusão de metadados técnicos e persistência das tabelas da camada Bronze |
+| [`02_transformacao_silver.py`](notebooks/02_transformacao_silver.py) | Limpeza, padronização, tipagem, consolidação e criação dos campos derivados da camada Silver |
+| [`03_modelagem_gold.py`](notebooks/03_modelagem_gold.py) | Aplicação do recorte temporal, criação das dimensões e da tabela fato e persistência do modelo dimensional |
+| [`04_qualidade_dados.py`](notebooks/04_qualidade_dados.py) | Execução das verificações de completude, consistência, unicidade, acurácia e identificação de potenciais outliers |
+| [`05_analise_negocio.py`](notebooks/05_analise_negocio.py) | Consultas e visualizações utilizadas para responder às cinco perguntas de negócio |
+| [`06_catalogo_dados.sql`](notebooks/06_catalogo_dados.sql) | Registro das descrições das tabelas e campos diretamente no Unity Catalog |
 
 Os códigos utilizados no desenvolvimento estão disponibilizados na pasta `notebooks` deste repositório.
 
@@ -503,15 +569,17 @@ As principais tabelas persistidas durante o pipeline são:
 
 ## 5.6 Sequência de Execução
 
+## 5.6 Sequência de Execução
+
 Para reproduzir o pipeline, os notebooks devem ser executados na seguinte ordem:
 
-1. `00_setup`
-2. `01_ingestao_bronze`
-3. `02_transformacao_silver`
-4. `03_modelagem_gold`
-5. `04_qualidade_dados`
-6. `05_analise_negocio`
-7. `06_catalogo_dados`
+1. [`00_setup.sql`](notebooks/00_setup.sql)
+2. [`01_ingestao_bronze.sql`](notebooks/01_ingestao_bronze.sql)
+3. [`02_transformacao_silver.py`](notebooks/02_transformacao_silver.py)
+4. [`03_modelagem_gold.py`](notebooks/03_modelagem_gold.py)
+5. [`04_qualidade_dados.py`](notebooks/04_qualidade_dados.py)
+6. [`05_analise_negocio.py`](notebooks/05_analise_negocio.py)
+7. [`06_catalogo_dados.sql`](notebooks/06_catalogo_dados.sql)
 
 Os quatro primeiros notebooks representam a construção principal do pipeline de dados.
 
@@ -781,7 +849,7 @@ A análise estatística identificou potenciais outliers, porém esses registros 
 
 ---
 
-# 7. Análise dos Dados
+# 7. Análise de Dados
 
 Após a construção e validação do pipeline, os dados da camada Gold foram utilizados para responder às cinco perguntas de negócio definidas no início do projeto.
 
