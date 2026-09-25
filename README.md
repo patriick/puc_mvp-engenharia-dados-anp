@@ -111,3 +111,86 @@ A quantidade de registros persistidos foi validada após a carga:
 A imagem abaixo apresenta o Volume utilizado para armazenamento dos arquivos originais e as tabelas persistidas na camada Bronze.
 
 ![Estrutura da camada Bronze e arquivos brutos](docs/screenshots/bronze_estrutura_e_arquivos.png)
+---
+
+# 4. Modelagem e Catálogo de Dados
+
+A estrutura do projeto foi organizada utilizando a arquitetura Medalhão, separando os dados nas camadas **Bronze**, **Silver** e **Gold**.
+
+Essa organização permite preservar os dados recebidos da fonte, realizar tratamentos em uma camada intermediária e disponibilizar uma estrutura final preparada para consumo analítico.
+
+## 4.1 Camada Bronze
+
+A camada Bronze contém os dados provenientes diretamente dos arquivos CSV da ANP, preservando a estrutura original dos campos.
+
+Tabelas:
+
+- `workspace.bronze.producao_petroleo_raw`
+- `workspace.bronze.producao_gas_natural_raw`
+
+Além dos campos originais, foram adicionados metadados técnicos para garantir a rastreabilidade dos registros:
+
+- `_data_ingestao`
+- `_fonte`
+- `_arquivo_origem`
+
+### Evidência do catálogo da camada Bronze
+
+![Catálogo da produção de petróleo na Bronze](docs/screenshots/bronze_catalogo_petroleo.png)
+
+![Catálogo da produção de gás natural na Bronze](docs/screenshots/bronze_catalogo_gn.png)
+
+---
+
+## 4.2 Camada Silver
+
+A camada Silver consolida os dados de petróleo e gás natural em uma única estrutura, aplicando limpeza, padronização, tipagem e enriquecimento dos campos.
+
+Tabela:
+
+- `workspace.silver.producao_hidrocarbonetos`
+
+Os principais tratamentos realizados foram:
+
+- padronização dos nomes das colunas;
+- conversão do campo `ano` para tipo inteiro;
+- conversão do campo `producao` para `decimal(20,3)`;
+- tratamento do separador decimal;
+- inclusão da unidade de medida correspondente ao produto;
+- consolidação das bases de petróleo e gás natural;
+- criação do campo `mes_numero`;
+- criação do campo `data_referencia`;
+- preservação dos metadados de rastreabilidade provenientes da camada Bronze.
+
+A camada Silver mantém o histórico completo disponível nos arquivos de origem.
+
+### Evidência do catálogo da camada Silver
+
+![Catálogo da camada Silver](docs/screenshots/silver_catalogo_producao_hidrocarbonetos.png)
+
+---
+
+## 4.3 Camada Gold
+
+A camada Gold contém o modelo dimensional utilizado para as análises de negócio.
+
+Nesta camada foi aplicado o recorte temporal de **2016 a 2025**, considerando apenas anos completos.
+
+O modelo foi estruturado em esquema estrela e é composto pelas seguintes tabelas:
+
+- `workspace.gold.dim_tempo`
+- `workspace.gold.dim_localidade`
+- `workspace.gold.dim_produto`
+- `workspace.gold.dim_ambiente`
+- `workspace.gold.fato_producao`
+
+### Estrutura do modelo dimensional
+
+```text
+                    dim_tempo
+                        |
+                        |
+dim_localidade --- fato_producao --- dim_produto
+                        |
+                        |
+                   dim_ambiente
