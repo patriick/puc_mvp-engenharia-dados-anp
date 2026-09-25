@@ -333,3 +333,218 @@ A linhagem lógica implementada no projeto pode ser resumida da seguinte forma:
             |
             v
     Análises de Negócio
+
+    ---
+
+# 5. Pipeline de Dados
+
+O pipeline foi desenvolvido no **Databricks Free Edition**, utilizando **PySpark**, **Spark SQL**, **Delta Lake** e **Unity Catalog**.
+
+A implementação foi dividida em notebooks independentes de acordo com a responsabilidade de cada etapa do processo. Essa separação facilita a organização, manutenção, rastreabilidade e execução do pipeline.
+
+O fluxo geral implementado pode ser representado da seguinte forma:
+
+    Dados Abertos da ANP
+            |
+            v
+      Arquivos CSV
+            |
+            v
+    Volume raw_files
+            |
+            v
+    Camada Bronze
+    Dados brutos + metadados
+            |
+            v
+    Camada Silver
+    Limpeza + padronização
+    + consolidação
+            |
+            v
+      Camada Gold
+    Modelo dimensional
+            |
+            v
+    Qualidade de Dados
+            |
+            v
+    Análises de Negócio
+
+## 5.1 Organização dos Notebooks
+
+O projeto foi dividido nos seguintes notebooks:
+
+| Notebook | Responsabilidade |
+|---|---|
+| `00_setup` | Configuração inicial do ambiente, criação dos schemas Bronze, Silver e Gold e criação do Volume para armazenamento dos arquivos brutos |
+| `01_ingestao_bronze` | Leitura dos arquivos CSV da ANP, inclusão de metadados técnicos e persistência das tabelas da camada Bronze |
+| `02_transformacao_silver` | Limpeza, padronização, tipagem, consolidação e criação dos campos derivados da camada Silver |
+| `03_modelagem_gold` | Aplicação do recorte temporal, criação das dimensões e da tabela fato e persistência do modelo dimensional |
+| `04_qualidade_dados` | Execução das verificações de completude, consistência, unicidade, acurácia e identificação de potenciais outliers |
+| `05_analise_negocio` | Consultas e visualizações utilizadas para responder às cinco perguntas de negócio |
+| `06_catalogo_dados` | Registro das descrições das tabelas e campos diretamente no Unity Catalog |
+
+Os códigos utilizados no desenvolvimento estão disponibilizados na pasta `notebooks` deste repositório.
+
+---
+
+## 5.2 Ingestão e Camada Bronze
+
+A ingestão começa com os dois arquivos CSV disponibilizados pela ANP e armazenados no Volume:
+
+`workspace.bronze.raw_files`
+
+A leitura foi realizada utilizando PySpark, mantendo inicialmente todos os campos no formato original da fonte.
+
+Na camada Bronze foram adicionados apenas metadados técnicos:
+
+- `_data_ingestao`;
+- `_fonte`;
+- `_arquivo_origem`.
+
+Os dados foram persistidos no formato Delta nas tabelas:
+
+- `workspace.bronze.producao_petroleo_raw`;
+- `workspace.bronze.producao_gas_natural_raw`.
+
+Após a persistência, a quantidade de registros foi validada para garantir que não houve perda durante o processo de ingestão.
+
+### Evidência da persistência na camada Bronze
+
+![Estrutura da camada Bronze e arquivos brutos](docs/screenshots/bronze_estrutura_e_arquivos.png)
+
+---
+
+## 5.3 Transformação e Camada Silver
+
+A camada Silver foi construída a partir das duas tabelas da camada Bronze.
+
+Nesta etapa foram aplicadas transformações de limpeza e padronização, incluindo:
+
+- padronização dos nomes dos campos;
+- conversão do campo `ano` para inteiro;
+- tratamento do separador decimal da produção;
+- conversão do campo `producao` para `decimal(20,3)`;
+- definição explícita da unidade de medida de cada produto;
+- consolidação das bases de petróleo e gás natural;
+- criação do número do mês;
+- criação da data de referência mensal;
+- preservação dos campos de rastreabilidade.
+
+Após as transformações, as duas bases foram consolidadas em uma única tabela:
+
+`workspace.silver.producao_hidrocarbonetos`
+
+A quantidade total de registros persistida na camada Silver foi de **15.651 registros**, preservando os registros existentes nas duas tabelas da Bronze.
+
+---
+
+## 5.4 Modelagem e Camada Gold
+
+A camada Gold foi construída a partir da tabela consolidada da camada Silver.
+
+Para atender ao escopo analítico definido para o MVP, foi aplicado o recorte temporal entre **2016 e 2025**, mantendo dez anos completos de produção.
+
+A partir desses dados foi desenvolvido um modelo dimensional em esquema estrela.
+
+Foram criadas as dimensões:
+
+- `dim_tempo`;
+- `dim_localidade`;
+- `dim_produto`;
+- `dim_ambiente`.
+
+Também foi criada a tabela central:
+
+- `fato_producao`.
+
+A tabela fato contém **5.278 registros** correspondentes ao período selecionado para análise.
+
+Durante a modelagem foram realizadas validações para verificar:
+
+- unicidade das chaves das dimensões;
+- ausência de chaves estrangeiras nulas na tabela fato;
+- preservação da quantidade de registros após os relacionamentos;
+- funcionamento dos relacionamentos entre fato e dimensões.
+
+### Evidência da persistência na camada Gold
+
+![Estrutura do modelo Gold](docs/screenshots/gold_estrutura_modelo.png)
+
+---
+
+## 5.5 Persistência dos Dados
+
+As tabelas das três camadas foram persistidas utilizando o formato **Delta**.
+
+A utilização desse formato permite que os dados sejam armazenados dentro do ambiente Lakehouse do Databricks com uma estrutura preparada para consultas analíticas.
+
+As principais tabelas persistidas durante o pipeline são:
+
+### Bronze
+
+- `workspace.bronze.producao_petroleo_raw`
+- `workspace.bronze.producao_gas_natural_raw`
+
+### Silver
+
+- `workspace.silver.producao_hidrocarbonetos`
+
+### Gold
+
+- `workspace.gold.dim_tempo`
+- `workspace.gold.dim_localidade`
+- `workspace.gold.dim_produto`
+- `workspace.gold.dim_ambiente`
+- `workspace.gold.fato_producao`
+
+---
+
+## 5.6 Sequência de Execução
+
+Para reproduzir o pipeline, os notebooks devem ser executados na seguinte ordem:
+
+1. `00_setup`
+2. `01_ingestao_bronze`
+3. `02_transformacao_silver`
+4. `03_modelagem_gold`
+5. `04_qualidade_dados`
+6. `05_analise_negocio`
+7. `06_catalogo_dados`
+
+Os quatro primeiros notebooks representam a construção principal do pipeline de dados.
+
+Os notebooks posteriores realizam as etapas de validação da qualidade, análise dos resultados e documentação do catálogo.
+
+---
+
+## 5.7 Rastreabilidade
+
+A rastreabilidade foi mantida ao longo do pipeline por meio dos metadados adicionados durante a ingestão:
+
+- fonte do dado;
+- arquivo de origem;
+- data de ingestão.
+
+Essas informações são preservadas na camada Silver, permitindo identificar a origem dos registros mesmo após os processos de transformação e consolidação.
+
+A organização em camadas também permite acompanhar logicamente a evolução do dado durante o pipeline:
+
+    CSV original
+        |
+        v
+    Bronze
+    dado recebido
+        |
+        v
+    Silver
+    dado tratado
+        |
+        v
+    Gold
+    dado modelado
+        |
+        v
+    Análise
+    informação para consumo
