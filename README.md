@@ -69,3 +69,45 @@ Os conjuntos utilizados são disponibilizados pela ANP como **dados abertos gove
 De acordo com a Política de Dados Abertos do Poder Executivo Federal, dados abertos são disponibilizados sob licença aberta, permitindo sua utilização, reutilização e cruzamento, sujeitando-se, no máximo, à preservação da autoria ou da fonte.
 
 Neste projeto, a ANP é mantida como fonte de origem dos dados durante todo o pipeline por meio dos metadados adicionados na camada Bronze.
+
+---
+
+# 3. Carga dos Dados
+
+Após o download dos arquivos CSV disponibilizados pela ANP, os dados foram carregados no ambiente Databricks Free Edition.
+
+Para armazenamento dos arquivos originais foi criado um Volume no Unity Catalog:
+
+`workspace.bronze.raw_files`
+
+Nesse Volume foram armazenados os seguintes arquivos:
+
+- `producao-petroleo-m3-1997-2026.csv`
+- `producao-gas-natural-1000m3-1997-2026.csv`
+
+A camada Bronze foi utilizada para preservar os dados o mais próximo possível de sua estrutura original. Durante a ingestão, não foram aplicadas transformações de negócio ou padronizações dos campos.
+
+Foram adicionados apenas metadados técnicos para garantir a rastreabilidade dos registros:
+
+- `_data_ingestao`: data e horário da ingestão;
+- `_fonte`: identificação da fonte dos dados;
+- `_arquivo_origem`: nome do arquivo utilizado na carga.
+
+Após a leitura dos arquivos com PySpark, os dados foram persistidos no formato Delta nas seguintes tabelas:
+
+- `workspace.bronze.producao_petroleo_raw`
+- `workspace.bronze.producao_gas_natural_raw`
+
+A quantidade de registros persistidos foi validada após a carga:
+
+| Tabela | Registros |
+|---|---:|
+| `producao_petroleo_raw` | 7.920 |
+| `producao_gas_natural_raw` | 7.731 |
+| **Total** | **15.651** |
+
+### Evidência da carga e armazenamento
+
+A imagem abaixo apresenta o Volume utilizado para armazenamento dos arquivos originais e as tabelas persistidas na camada Bronze.
+
+![Estrutura da camada Bronze e arquivos brutos](docs/screenshots/bronze_estrutura_e_arquivos.png)
