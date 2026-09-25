@@ -1022,3 +1022,41 @@ Considero que o MVP cumpriu o que eu pretendia desenvolver: partir de arquivos p
 Mais do que gerar os gráficos finais, o trabalho ajudou a entender melhor todo o caminho percorrido pelo dado e a importância das etapas anteriores à análise.
 
 Os principais desafios surgiram justamente nos detalhes da base, como tratamento dos valores numéricos, diferenças de unidade e interpretação dos outliers. Resolver esses pontos tornou o projeto mais próximo de uma situação real de Engenharia de Dados e foi a parte que mais agregou aprendizado durante o desenvolvimento.
+
+---
+
+# 9. Estrutura do Repositório
+
+A organização dos arquivos deste repositório é apresentada abaixo:
+
+    puc_mvp-engenharia-dados-anp/
+    │
+    ├── README.md
+    │
+    ├── notebooks/
+    │   ├── 00_setup.sql
+    │   ├── 01_ingestao_bronze.sql
+    │   ├── 02_transformacao_silver.py
+    │   ├── 03_modelagem_gold.py
+    │   ├── 04_qualidade_dados.py
+    │   ├── 05_analise_negocio.py
+    │   └── 06_catalogo_dados.sql
+    │
+    └── docs/
+        └── screenshots/
+            ├── bronze_estrutura_e_arquivos.png
+            ├── bronze_catalogo_petroleo.png
+            ├── bronze_catalogo_gn.png
+            ├── silver_catalogo_producao_hidrocarbonetos.png
+            ├── gold_estrutura_modelo.png
+            ├── gold_catalogo_fato_producao.png
+            ├── gold_catalogo_dim_produto.png
+            ├── qualidade_tratamento_decimal.png
+            ├── qualidade_completude.png
+            ├── qualidade_validacoes.png
+            ├── qualidade_outliers_contextuais.png
+            ├── analise_01_evolucao_producao.png
+            ├── analise_02_top5_estados.png
+            ├── analise_03_terra_mar.png
+            ├── analise_04_regioes.png
+            └── analise_05_concentracao_top3.png
