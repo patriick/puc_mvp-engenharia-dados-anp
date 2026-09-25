@@ -959,3 +959,66 @@ Os principais resultados foram:
 Os resultados demonstram como a construção de um pipeline estruturado permite transformar os dados brutos disponibilizados pela ANP em informações organizadas e adequadas para análise.
 
 A arquitetura desenvolvida possibilitou preservar os dados de origem, aplicar tratamentos de qualidade, estruturar um modelo dimensional e responder às perguntas de negócio definidas para o MVP.
+---
+
+# 8. Autoavaliação
+
+O desenvolvimento deste MVP foi uma oportunidade de colocar em prática várias etapas que normalmente aparecem separadas durante o estudo de Engenharia de Dados. Ao longo do projeto, trabalhei desde a obtenção dos arquivos da ANP até a construção das tabelas finais utilizadas nas análises.
+
+Procurei não tratar o trabalho apenas como uma sequência de notebooks. A ideia foi entender o papel de cada etapa e manter uma lógica clara entre os dados recebidos, os tratamentos realizados e o resultado final disponibilizado para análise.
+
+## 8.1 Resultados Alcançados
+
+O pipeline foi estruturado nas camadas Bronze, Silver e Gold.
+
+Na camada Bronze foram carregados **7.920 registros de petróleo** e **7.731 registros de gás natural**, totalizando **15.651 registros**. Esses dados foram mantidos próximos ao formato original, acrescentando apenas informações de rastreabilidade.
+
+Na Silver, as duas fontes foram tratadas e consolidadas em uma única tabela. Já na Gold, optei por trabalhar com o período entre **2016 e 2025**, por serem dez anos completos dentro da base disponível.
+
+Esse recorte resultou em **5.278 registros** na tabela fato, além das dimensões de tempo, localidade, produto e ambiente.
+
+Com essa estrutura foi possível responder às cinco perguntas de negócio definidas no início do projeto e, ao mesmo tempo, manter uma separação clara entre dado bruto, dado tratado e dado preparado para análise.
+
+## 8.2 Principais Desafios
+
+Um dos primeiros problemas que encontrei foi no campo de produção. Parte dos valores utilizava vírgula como separador decimal, como no valor `65031,6`.
+
+Antes de perceber isso, uma conversão direta poderia gerar erro ou perda de informação. Por isso, foi necessário normalizar esses valores antes de convertê-los para um tipo numérico.
+
+Outro ponto que exigiu atenção foi a unidade de medida. Petróleo e gás natural possuem unidades diferentes na fonte, então não faria sentido simplesmente juntar os volumes e tratá-los como uma mesma medida. A solução foi manter a unidade associada ao produto e realizar as análises separadamente quando necessário.
+
+Também tive que tomar cuidado durante a construção do modelo dimensional para não perder registros nos relacionamentos entre a fato e as dimensões. Por isso, além de criar o modelo, fiz validações comparando as quantidades antes e depois da transformação.
+
+A análise de outliers também foi um ponto interessante. Quando fiz uma avaliação mais geral, apareceram **2.114 potenciais outliers**, um número muito alto. Ao analisar melhor, percebi que comparar estados e ambientes muito diferentes poderia fazer com que valores legítimos fossem classificados como anormais.
+
+Refiz então a análise considerando produto, estado e localização, chegando a **274 potenciais outliers contextuais**. Mesmo assim, optei por não remover esses registros, já que um valor elevado de produção pode representar uma característica real da atividade e não necessariamente um erro na base.
+
+## 8.3 Aprendizados
+
+O principal aprendizado deste trabalho foi perceber na prática a importância da separação das responsabilidades dentro de um pipeline.
+
+A Bronze ficou responsável por preservar o dado recebido. A Silver concentrou os tratamentos e padronizações. A Gold passou a representar a visão preparada para análise.
+
+Antes do desenvolvimento, essa divisão parecia muito mais conceitual. Durante o projeto ficou mais claro como ela ajuda a localizar problemas, entender a origem dos dados e evitar que regras de tratamento fiquem misturadas com regras de negócio.
+
+Também consegui praticar o uso de PySpark, Spark SQL, tabelas Delta, Unity Catalog e modelagem dimensional dentro de um mesmo projeto, em vez de trabalhar esses assuntos de maneira isolada.
+
+Outro aprendizado importante foi que qualidade de dados não significa simplesmente excluir tudo que parece diferente. No caso dos outliers, por exemplo, foi necessário entender o contexto antes de decidir se os valores realmente representavam algum problema.
+
+## 8.4 Melhorias Futuras
+
+Embora o pipeline atenda ao objetivo deste MVP, algumas partes poderiam ser evoluídas.
+
+Hoje a aquisição dos arquivos é feita manualmente. Uma próxima versão poderia buscar os dados diretamente na fonte da ANP e processar apenas novos períodos, evitando a necessidade de recarregar todo o histórico.
+
+Também seria interessante automatizar a execução dos notebooks, criar regras de qualidade mais formais e incluir alertas para situações como falhas de carga, mudanças de estrutura ou valores fora do esperado.
+
+Outra evolução seria utilizar os dados da Gold em um dashboard e incorporar novas fontes do setor de petróleo e gás, ampliando as possibilidades de análise.
+
+## 8.5 Considerações Finais
+
+Considero que o MVP cumpriu o que eu pretendia desenvolver: partir de arquivos públicos da ANP e chegar a uma estrutura de dados organizada, documentada e preparada para análise.
+
+Mais do que gerar os gráficos finais, o trabalho ajudou a entender melhor todo o caminho percorrido pelo dado e a importância das etapas anteriores à análise.
+
+Os principais desafios surgiram justamente nos detalhes da base, como tratamento dos valores numéricos, diferenças de unidade e interpretação dos outliers. Resolver esses pontos tornou o projeto mais próximo de uma situação real de Engenharia de Dados e foi a parte que mais agregou aprendizado durante o desenvolvimento.
